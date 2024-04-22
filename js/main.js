@@ -4,7 +4,12 @@
 // color for background
 const BACKGROUND_COLOR = 0x65635a;
 let phase = 'init';
+let t;
+let r;
+let meat = true;
 let level = -1;
+let animFrame = 0;
+const shredTime = 2000;
 // containers
 const bgC = new PIXI.Container();
 const dragC = new PIXI.Container();
@@ -72,7 +77,7 @@ function removeDragAndDropFor(target) {
   target.on('mousemove', () => {});
 }
 
-function bob(obj, delta) {
+function bop(obj, delta) {
   const length = 150;
   const width = 1;
   const height = 1.5;
@@ -99,6 +104,100 @@ function bob(obj, delta) {
   obj.frame = (obj.frame + delta) % length;
 }
 
+function addChicken() {
+  const c = new PIXI.Sprite(PIXI.loader.resources.babychick.texture);
+  fgC.chicken.push(c);
+  c.x = -c.width;
+  c.y = (window.innerHeight / 4) + (Math.random() * window.innerHeight / 2);
+  fgC.addChild(c);
+}
+
+function blood(pos) {
+  const e = new PIXI.particles.Emitter(
+    fgC,
+    [
+      PIXI.loader.resources.blood.texture,
+      PIXI.loader.resources.blood1.texture,
+      PIXI.loader.resources.blood2.texture,
+    ],
+    {
+      alpha: {
+        list: [
+          {
+            value: 1,
+            time: 0,
+          },
+          {
+            value: 0.8,
+            time: 1,
+          },
+        ],
+        isStepped: false,
+      },
+      scale: {
+        list: [
+          {
+            value: 1,
+            time: 0,
+          },
+          {
+            value: 0.8,
+            time: 1,
+          },
+        ],
+        isStepped: false,
+      },
+      speed: {
+        list: [
+          {
+            value: 3000,
+            time: 0,
+          },
+          {
+            value: 800,
+            time: 1,
+          },
+        ],
+        isStepped: false,
+      },
+      startRotation: {
+        min: 150,
+        max: 240,
+      },
+      rotationSpeed: {
+        min: 0,
+        max: 0,
+      },
+      lifetime: {
+        min: 0.1,
+        max: 1,
+      },
+      frequency: 0.01,
+      spawnChance: 1,
+      particlesPerWave: 5,
+      emitterLifetime: 0.2,
+      maxParticles: 10000,
+      pos: {
+        x: pos.x,
+        y: pos.y,
+      },
+      addAtBack: false,
+      spawnType: 'circle',
+      spawnCircle: {
+        x: 0,
+        y: 0,
+        r: 20,
+      },
+    },
+  );
+  if (fgC.emitters) {
+    fgC.emitters.push(e);
+  } else {
+    fgC.emitters = [e];
+  }
+  e.emit = true;
+}
+
 function gameLoop(delta) {
   // called every frame
   if (phase === 'drop') {
@@ -109,7 +208,7 @@ function gameLoop(delta) {
     dragC.visibles.forEach((obj) => {
       // animate
       if (obj !== dragC.current) {
-        bob(obj, delta);
+        bop(obj, delta);
       }
       // highlight zones
       if (obj.y > window.innerHeight - bgC.leftZone.height) {
@@ -121,15 +220,100 @@ function gameLoop(delta) {
       }
     });
   } else if (phase === 'anim') {
+    if (bgC.text) {
+      bgC.removeChild(bgC.text);
+      bgC.text = undefined;
+    }
     dragC.visibles.forEach((obj) => {
-      bob(obj, delta * 4);
+      bop(obj, delta * 4);
     });
-    if (dragC.current.y < window.innerWidth + dragC.height) {
+    if (dragC.current.y < window.innerWidth + dragC.current.height) {
+      // move object out of frame
       dragC.current.y += 10 * delta;
+      animFrame = 0;
     } else if (dragC.current) {
       // bonus anim
-      // end phase
-      dragC.current = false;
+      if (level === 2 && bgC.leftZone.alpha > 0.5 && animFrame === 0) {
+        // chicken
+        animFrame += delta;
+        r = new PIXI.Graphics();
+        r.beginFill(BACKGROUND_COLOR);
+        r.drawRect(0, 0, window.innerWidth, window.innerHeight / 10);
+        fgC.addChild(r);
+        t = new PIXI.Text('Reminds me: I gotta shred these male chicks...', { fontFamily: 'Roboto', fill: 'white' });
+        fgC.addChild(t);
+        t.anchor.set(0.5);
+        t.position.set(window.innerWidth / 2, window.innerHeight / 20);
+        fgC.chicken = [];
+        fgC.lastChicken = animFrame + 50;
+      } else if (
+        level === 2
+        && bgC.leftZone.alpha > 0.5
+        && animFrame > 0
+        && animFrame < shredTime
+      ) {
+        animFrame += delta;
+        if (animFrame < shredTime - 200 && fgC.lastChicken < animFrame - 2) {
+          addChicken();
+          fgC.lastChicken = animFrame;
+        } else if (animFrame > shredTime - 200 && !t.changed) {
+          t.changed = true;
+          t.text = `Those were ${fgC.chicken.length} chicks`;
+          t.position.set(window.innerWidth / 2, window.innerHeight / 20);
+        }
+        fgC.chicken.forEach((c) => {
+          c.x += delta * window.innerWidth / 30;
+          bop(c, delta * 20);
+          if (c.x > window.innerWidth + c.width && !c.dead) {
+            c.dead = true;
+            blood(c);
+          }
+        });
+        if (fgC.emitters) {
+          fgC.emitters.forEach((e) => {
+            e.update(delta * 0.01);
+          });
+        }
+      } else if (
+        level === 2
+        && bgC.leftZone.alpha > 0.5
+        && animFrame >= shredTime
+      ) {
+        // remove all
+        dragC.current = false;
+        for (let i = fgC.children.length - 1; i >= 0; i -= 1) {
+          fgC.removeChild(fgC.children[i]);
+        }
+        fgC.chicken = undefined;
+        r = undefined;
+        t = undefined;
+      } else if (level === 2 && bgC.rightZone.alpha > 0.5) {
+        meat = false;
+        dragC.current = false;
+      } else if (level === 3 && bgC.leftZone.alpha > 0.5 && !meat && animFrame < 150) {
+        animFrame += delta;
+        if (fgC.mi && animFrame < 100) {
+          fgC.mi.y -= (delta * window.innerHeight * 0.35) / 50;
+          fgC.mi.scale.set(fgC.mi.scale.x + (0.01 * delta));
+        } else {
+          fgC.mi = new PIXI.Sprite(PIXI.loader.resources.mi.texture);
+          fgC.mi.anchor.set(0.5);
+          fgC.mi.x = window.innerWidth / 2;
+          fgC.mi.y = (window.innerHeight);
+          fgC.mi.scale.set(0.1);
+          fgC.addChild(fgC.mi);
+        }
+      } else if (level === 3 && bgC.leftZone.alpha > 0.5 && !meat && animFrame >= 150) {
+        for (let i = fgC.children.length - 1; i >= 0; i -= 1) {
+          fgC.removeChild(fgC.children[i]);
+        }
+        dragC.current = false;
+        animFrame = 0;
+        fgC.mi = undefined;
+      } else {
+        // end phase
+        dragC.current = false;
+      }
     } else {
       // clear this level
       dragC.visibles.forEach((obj) => {
@@ -148,11 +332,26 @@ function gameLoop(delta) {
         dragC.sprites[level].y = (window.innerHeight - bgC.leftZone.height) / 2;
         // make draggable
         createDragAndDropFor(dragC.sprites[level]);
+        // add text
+        bgC.text = new PIXI.Text('What should you do with this?', { fontFamily: 'Roboto', fill: 'white', alpha: 0.8 });
+        bgC.addChild(bgC.text);
+        bgC.text.anchor.set(0.5);
+        bgC.text.position.set(
+          window.innerWidth / 2,
+          dragC.sprites[level].y - dragC.sprites[level].height,
+        );
         phase = 'drop';
-        console.log('next level');
       } else {
         phase = 'end';
-        console.log('done');
+        bgC.removeChild(bgC.leftZone);
+        bgC.removeChild(bgC.rightZone);
+        bgC.text = new PIXI.Text('fin.', { fontFamily: 'Roboto', fill: 'white', alpha: 0.8 });
+        bgC.addChild(bgC.text);
+        bgC.text.anchor.set(0.5);
+        bgC.text.position.set(
+          window.innerWidth / 2,
+          window.innerHeight / 2,
+        );
       }
     }
   }
@@ -187,7 +386,7 @@ function setup() {
   bgC.addChild(bgC.rightZone);
   // drag-droppable
   dragC.sprites = [];
-  ['apple', 'cheese', 'babychick', 'can', 'chicken'].forEach((sprite) => {
+  ['can', 'apple', 'chicken', 'cheese'].forEach((sprite) => {
     dragC.sprites.push(new PIXI.Sprite(PIXI.loader.resources[sprite].texture));
   });
   // resize and position everything nicely
@@ -207,4 +406,8 @@ PIXI.loader
   .add('babychick', 'images/babychick.png')
   .add('can', 'images/can.png')
   .add('chicken', 'images/chicken.png')
+  .add('blood', 'images/blood.png')
+  .add('blood1', 'images/blood1.png')
+  .add('blood2', 'images/blood2.png')
+  .add('mi', 'images/mi.png')
   .load(setup);
