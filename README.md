@@ -9,4 +9,4 @@ Check it out live over [here.](https://OptionalM.github.io/SortingGame/)
 ## Libraries
 Currently this project is using:
 * [Pixi.js](http://www.pixijs.com/) for everything you see.
-* [Pixi-filters](https://github.com/pixijs/pixi-particles) for some 🔥 particle effects.
+* [Pixi-particles](https://github.com/pixijs/pixi-particles) for some 🔥 particle effects.
