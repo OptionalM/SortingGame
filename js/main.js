@@ -72,6 +72,33 @@ function removeDragAndDropFor(target) {
   target.on('mousemove', () => {});
 }
 
+function bob(obj, delta) {
+  const length = 150;
+  const width = 1;
+  const height = 1.5;
+  const rotation = 0.4;
+  if (obj.frame === undefined) {
+    obj.frame = 0;
+    obj.rotation = -rotation / 4;
+    obj.x -= (length / 4) * width;
+  }
+  // x
+  if (obj.frame < length / 2) {
+    obj.x += delta * width;
+    obj.rotation += rotation * delta / (length / 2);
+  } else {
+    obj.x -= delta * width;
+    obj.rotation -= rotation * delta / (length / 2);
+  }
+  // y
+  if (obj.frame < length / 4 || (obj.frame > length / 2 && obj.frame < length * 0.75)) {
+    obj.y -= ((length / 4 - (obj.frame % (length / 4))) / (length / 4)) * delta * height;
+  } else {
+    obj.y += (1 - ((length / 4 - (obj.frame % (length / 4))) / (length / 4))) * delta * height;
+  }
+  obj.frame = (obj.frame + delta) % length;
+}
+
 function gameLoop(delta) {
   // called every frame
   if (phase === 'drop') {
@@ -80,6 +107,11 @@ function gameLoop(delta) {
     bgC.rightZone.alpha = 0.5;
     // collides with one
     dragC.visibles.forEach((obj) => {
+      // animate
+      if (obj !== dragC.current) {
+        bob(obj, delta);
+      }
+      // highlight zones
       if (obj.y > window.innerHeight - bgC.leftZone.height) {
         if (obj.x < window.innerWidth * 0.45) {
           bgC.leftZone.alpha = 1;
@@ -89,6 +121,9 @@ function gameLoop(delta) {
       }
     });
   } else if (phase === 'anim') {
+    dragC.visibles.forEach((obj) => {
+      bob(obj, delta * 4);
+    });
     if (dragC.current.y < window.innerWidth + dragC.height) {
       dragC.current.y += 10 * delta;
     } else if (dragC.current) {
