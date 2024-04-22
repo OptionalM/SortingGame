@@ -144,17 +144,17 @@ function setup() {
   app.stage.addChild(fgC);
   // load sprites
   // background
-  bgC.background = new PIXI.Sprite(PIXI.loader.resources.img.texture);
+  bgC.background = new PIXI.Sprite(PIXI.loader.resources.bg.texture);
   bgC.addChild(bgC.background);
-  bgC.leftZone = new PIXI.Sprite(PIXI.loader.resources.img.texture);
+  bgC.leftZone = new PIXI.Sprite(PIXI.loader.resources.leftZone.texture);
   bgC.addChild(bgC.leftZone);
-  bgC.rightZone = new PIXI.Sprite(PIXI.loader.resources.img.texture);
+  bgC.rightZone = new PIXI.Sprite(PIXI.loader.resources.rightZone.texture);
   bgC.addChild(bgC.rightZone);
   // drag-droppable
-  dragC.sprites = [new PIXI.Sprite(PIXI.loader.resources.img.texture)];
-  for (let i = 0; i < 3; i += 1) {
-    dragC.sprites.push(new PIXI.Sprite(PIXI.loader.resources.img.texture));
-  }
+  dragC.sprites = [];
+  ['apple', 'cheese', 'babychick', 'can', 'chicken'].forEach((sprite) => {
+    dragC.sprites.push(new PIXI.Sprite(PIXI.loader.resources[sprite].texture));
+  });
   // resize and position everything nicely
   resize();
   // start the gameloop
@@ -164,5 +164,12 @@ function setup() {
 
 // load the images and run the 'setup' function when it's done
 PIXI.loader
-  .add('img', 'images/img.png')
+  .add('bg', 'images/bg.png')
+  .add('rightZone', 'images/rightZone.png')
+  .add('leftZone', 'images/leftZone.png')
+  .add('apple', 'images/apple.png')
+  .add('cheese', 'images/cheese.png')
+  .add('babychick', 'images/babychick.png')
+  .add('can', 'images/can.png')
+  .add('chicken', 'images/chicken.png')
   .load(setup);
