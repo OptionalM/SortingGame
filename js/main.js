@@ -34,14 +34,39 @@ function gameLoop(delta) {
   // called every frame
 }
 
+// http://proclive.io/pixi-js-drag-drop/
+let drag = false;
+function createDragAndDropFor(target) {
+  const t = target;
+  t.interactive = true;
+  target.on('mousedown', () => {
+    drag = target;
+  });
+  target.on('mousemove', (e) => {
+    if (drag) {
+      drag.position.x += e.data.originalEvent.movementX;
+      drag.position.y += e.data.originalEvent.movementY;
+    }
+  });
+}
+
 // This setup function will run when the images have loaded
 function setup() {
+  // lose drag and drop on mouse up
+  app.stage.hitArea = new PIXI.Rectangle(0, 0, 5000, 5000);
+  app.stage.interactive = true;
+  app.stage.on('mouseup', () => {
+    drag = false;
+  });
+  // load sprites
+  const sprite = new PIXI.Sprite(PIXI.loader.resources.img.texture);
+  app.stage.addChild(sprite);
+  createDragAndDropFor(sprite);
   // start the gameloop
   app.ticker.add(delta => gameLoop(delta));
 }
 
-
 // load the images and run the 'setup' function when it's done
 PIXI.loader
-// .add('img', 'images/img.png')
+  .add('img', 'images/img.png')
   .load(setup);
